@@ -1,64 +1,55 @@
 import Head from 'next/head'
-import styles from '../styles/Home.module.css'
+import { useEffect, useState, useCallback } from 'react';
+import { useDebouncedCallback } from 'use-debounce';
+import styles from '../styles/Home.module.css';
+import { getWeather } from './../api/weatherAPI/weatherAPI';
 
 export default function Home() {
+  const DefaultCity = 'Nova Iguaçu';
+  const [cityTerm, setCityTerm] = useState(DefaultCity);
+  const [city, setCity] = useState(null);
+  const [icon, setIcon] = useState('');
+
+  const handleChange = (event) => setCityTerm(event.target.value || DefaultCity);
+  const debounced = useDebouncedCallback(handleChange, 1000);
+
+  const getCity = async (cityTerm) => {
+    try {
+      const { data } = await getWeather(cityTerm);
+      setIcon(`http://openweathermap.org/img/wn/${data.weather[0]["icon"]}@2x.png`)
+      setCity(data);
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  useEffect(() => {
+    getCity(cityTerm);
+  }, [cityTerm])
+
   return (
     <div className={styles.container}>
       <Head>
-        <title>Create Next App</title>
+        <title>Wheater </title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className={styles.main}>
-        <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
-
-        <p className={styles.description}>
-          Get started by editing{' '}
-          <code className={styles.code}>pages/index.js</code>
-        </p>
-
-        <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h3>Documentation &rarr;</h3>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h3>Learn &rarr;</h3>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/master/examples"
-            className={styles.card}
-          >
-            <h3>Examples &rarr;</h3>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-          >
-            <h3>Deploy &rarr;</h3>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
-      </main>
+      <form className={styles.main}>
+        <input className={styles.city__inputSearch} name="search" placeholder="Buscar cidade" onChange={debounced}></input>
+        {
+          city && <section id="card" className={styles.card}>
+            <h2 className={styles.city__name} data-name={`${city.name},${city.sys?.country}`}>
+              <span>{city.name}</span>
+              <sup>{city.sys?.country}</sup>
+            </h2>
+            {city.main?.temp && <div className={styles.city__temperature}>{Math.round(city.main?.temp)}<sup>°C</sup></div>}
+            <img src={icon}></img>
+            <span className={styles.city__climateDescription}>{city.weather?.map(x => x.description)}</span>
+          </section>
+        }
+      </form>
 
       <footer className={styles.footer}>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <img src="/vercel.svg" alt="Vercel Logo" className={styles.logo} />
-        </a>
       </footer>
     </div>
   )
